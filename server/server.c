@@ -70,30 +70,19 @@ int main(int argc, char *argv[])
               error("ERROR on binding");
      while(!kbhit())
      {
-		 printf("OI0");
 		 listen(sockfd,5);
-		 printf("OI1");
 		 clilen = sizeof(cli_addr);
-		 printf("OI2");
 		 newsockfd = accept(sockfd, 
 					 (struct sockaddr *) &cli_addr, 
 					 &clilen);
-		 printf("OI3");
 		 if (newsockfd < 0) 
 			  error("ERROR on accept");
 		 bzero(buffer,256);
-		 printf("OI4");
 		 n = read(newsockfd,buffer,255);
-		 printf("OI5");
 		 if (n < 0) error("ERROR reading from socket");
-		 printf("OI6");
 		 printf("Here is the message: %s\n",buffer);
-		 printf("OI7");
 		 n = write(newsockfd,"I got your message",18);
-		 printf("OITO");
 		 if (n < 0) error("ERROR writing to socket");
-		 printf("OI9");
-
 	 }
      
      close(newsockfd);
