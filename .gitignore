@@ -1,0 +1,4 @@
+/trash
+*.o
+server/build/*
+client/build/*
