@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 		 printf("OI0");
 		 listen(sockfd,5);
 		 printf("OI1");
-		 clilen = sizeof(cli_addr);,
+		 clilen = sizeof(cli_addr);
 		 printf("OI2");
 		 newsockfd = accept(sockfd, 
 					 (struct sockaddr *) &cli_addr, 
@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 		 printf("OITO");
 		 if (n < 0) error("ERROR writing to socket");
 		 printf("OI9");
+
 	 }
      
      close(newsockfd);
