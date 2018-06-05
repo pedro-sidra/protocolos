@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 		 printf("OITO");
 		 if (n < 0) error("ERROR writing to socket");
 		 printf("OI9");
+
 	 }
      
      close(newsockfd);
