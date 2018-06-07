@@ -65,7 +65,7 @@ int getComandoArgumento(char*str, char*cmd,int* arg)
 		*arg =  atoi(argumento);
 	}else
 	{
-		*arg=-1000;
+		*arg=-1;
 	}
 	if(comando!=NULL)
 	{
@@ -83,7 +83,7 @@ int getComandoArgumento(char*str, char*cmd,int* arg)
 
 int main (void)
 {
-	char str [256] = "jeba";
+	char str [256] = "seliga#99!";
 	char comando[40];
 	int argumento;
 	
