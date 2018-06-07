@@ -15,20 +15,18 @@
 int getComandoArgumento(char*str, char*cmd,int* arg);
 int kbhit(void);
 void error(const char *msg);
+void handleMensagem(char* msg,char* retorno);
 
 int main(int argc, char *argv[])
 {
      int sockfd, newsockfd, portno;
      socklen_t clilen;
      char buffer[256];
+     char retorno[256];
      struct sockaddr_in serv_addr, cli_addr;
      int n;
      
-	 char comando[40];
-	 int argumento;
-	
-	
-	
+
     
      if (argc < 2) {
          fprintf(stderr,"ERROR, no port provided\n");
@@ -48,6 +46,7 @@ int main(int argc, char *argv[])
               
      while(!kbhit())
      {
+		 strcpy(retorno,"No Commands");
 		 listen(sockfd,5);
 		 clilen = sizeof(cli_addr);
 		 newsockfd = accept(sockfd, 
@@ -59,18 +58,33 @@ int main(int argc, char *argv[])
 		 n = read(newsockfd,buffer,255);
 		 if (n < 0) error("ERROR reading from socket");
 		 printf("Here is the message: %s\n",buffer);
-		 n = write(newsockfd,"I got your message",18);
+		 
+		 handleMensagem(buffer,retorno);
+		 
+		 n = write(newsockfd,retorno,strlen(retorno));
 		 if (n < 0) error("ERROR writing to socket");
 		 
-		 getComandoArgumento(buffer,comando,&argumento);
-		 printf("argumento: %d \n",argumento);
-		 printf("comando: %s \n",comando);
+		
+		 
 			 
 	 }
      
      close(newsockfd);
      close(sockfd);
      return 0; 
+}
+
+void handleMensagem(char* msg, char* retorno)
+{
+	char comando[40];
+	int argumento;
+	
+	getComandoArgumento(msg,comando,&argumento);
+	printf("argumento: %d \n",argumento);
+	printf("comando: %s \n",comando);
+	
+	if(!strcmp("bunda",comando))
+		strcpy(retorno,"cu");
 }
 
 int kbhit(void)
