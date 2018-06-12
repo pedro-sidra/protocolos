@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
+find_package(Threads)
 project(testes)
-set(SOURCE_FILES testes.c)
+set(SOURCE_FILES testesnovo.c)
 add_executable(testes ${SOURCE_FILES})
+TARGET_LINK_LIBRARIES( testes pthread)

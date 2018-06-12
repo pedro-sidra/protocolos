@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <pthread.h>
+
 int getComandoArgumento(char*str, char*cmd,int* arg);
 int kbhit(void);
 void error(const char *msg);
@@ -83,8 +85,28 @@ void handleMensagem(char* msg, char* retorno)
 	printf("argumento: %d \n",argumento);
 	printf("comando: %s \n",comando);
 	
-	if(!strcmp("bunda",comando))
-		strcpy(retorno,"cu");
+	if(!strcmp("abreValvula",comando))
+	{
+		sprintf(retorno,"Angulo da valvula: %d",argumento);	
+	}else if(!strcmp("fechaValvula",comando))
+	{
+		sprintf(retorno,"Angulo da valvula: %d",argumento);
+	}else if(!strcmp("getNivel",comando))
+	{
+		sprintf(retorno,"Nivel do tanque: %d",argumento);
+	}else if(!strcmp("testaConexao",comando))
+	{
+		strcpy(retorno,"OK");
+	}else if(!strcmp("setPeriodoSimulacao",comando))
+	{
+		sprintf(retorno,"Periodo de sim setado: %d",argumento);
+	}else if(!strcmp("setConsumo",comando))
+	{
+		sprintf(retorno,"Consumo setado: %d",argumento);
+	}else if(!strcmp("iniciaSimulacao",comando))
+	{
+		strcpy(retorno,"OK");
+	}
 }
 
 int kbhit(void)
