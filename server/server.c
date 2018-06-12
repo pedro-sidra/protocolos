@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include <pthread.h>
 
@@ -18,8 +19,74 @@ int getComandoArgumento(char*str, char*cmd,int* arg);
 int kbhit(void);
 void error(const char *msg);
 void handleMensagem(char* msg,char* retorno);
+void *comms();
+void *simPlanta();
+void initPlanta();
 
-int main(int argc, char *argv[])
+struct tanque{
+	double nivel;
+	double influx;
+	double outflux;
+};
+
+pthread_mutex_t mutexPlanta = PTHREAD_MUTEX_INITIALIZER;
+
+int argc =0;
+char **argv;
+bool end = false;
+struct tanque planta;
+double simTS = 1;
+
+int main(int argcl,char *argvl[])
+{
+	argc = argcl;
+	argv = argvl;
+	
+	initPlanta();
+	
+	pthread_t commthread, simthread;
+	int  iret1, iret2;
+	iret1 = pthread_create( &commthread, NULL, comms,NULL);
+	if(iret1)
+	{
+	 fprintf(stderr,"Error commthread - pthread_create() return code: %d\n",iret1);
+	 exit(EXIT_FAILURE);
+	}
+
+	iret2 = pthread_create( &simthread, NULL, simPlanta,NULL);
+	if(iret2)
+	{
+	 fprintf(stderr,"Error simthread - pthread_create() return code: %d\n",iret2);
+	 exit(EXIT_FAILURE);
+	}
+	
+	while(!kbhit());
+	end = true;
+
+	pthread_join( commthread, NULL);
+	pthread_join( simthread, NULL); 
+
+	exit(EXIT_SUCCESS);
+	return 0;
+}
+void initPlanta()
+{
+	planta.nivel = 0.4;
+	planta.influx = 0;
+	planta.outflux=0;
+}
+void *simPlanta()
+{
+	int i;
+	while(!end)
+	{
+		pthread_mutex_lock( &mutexPlanta );
+		planta.nivel+=0.01;
+		pthread_mutex_unlock( &mutexPlanta );
+		sleep(simTS);
+	}
+}
+void *comms()
 {
      int sockfd, newsockfd, portno;
      socklen_t clilen;
@@ -27,8 +94,6 @@ int main(int argc, char *argv[])
      char retorno[256];
      struct sockaddr_in serv_addr, cli_addr;
      int n;
-     
-
     
      if (argc < 2) {
          fprintf(stderr,"ERROR, no port provided\n");
@@ -46,7 +111,7 @@ int main(int argc, char *argv[])
               sizeof(serv_addr)) < 0) 
               error("ERROR on binding");
               
-     while(!kbhit())
+     while(!end)
      {
 		 strcpy(retorno,"No Commands");
 		 listen(sockfd,5);
@@ -64,16 +129,10 @@ int main(int argc, char *argv[])
 		 handleMensagem(buffer,retorno);
 		 
 		 n = write(newsockfd,retorno,strlen(retorno));
-		 if (n < 0) error("ERROR writing to socket");
-		 
-		
-		 
-			 
+		 if (n < 0) error("ERROR writing to socket");	 
 	 }
-     
      close(newsockfd);
      close(sockfd);
-     return 0; 
 }
 
 void handleMensagem(char* msg, char* retorno)
@@ -85,6 +144,7 @@ void handleMensagem(char* msg, char* retorno)
 	printf("argumento: %d \n",argumento);
 	printf("comando: %s \n",comando);
 	
+	pthread_mutex_lock( &mutexPlanta );
 	if(!strcmp("abreValvula",comando))
 	{
 		sprintf(retorno,"Angulo da valvula: %d",argumento);	
@@ -93,13 +153,15 @@ void handleMensagem(char* msg, char* retorno)
 		sprintf(retorno,"Angulo da valvula: %d",argumento);
 	}else if(!strcmp("getNivel",comando))
 	{
+		argumento = (int) 100*planta.nivel;
 		sprintf(retorno,"Nivel do tanque: %d",argumento);
 	}else if(!strcmp("testaConexao",comando))
 	{
 		strcpy(retorno,"OK");
 	}else if(!strcmp("setPeriodoSimulacao",comando))
 	{
-		sprintf(retorno,"Periodo de sim setado: %d",argumento);
+		simTS=argumento/1000;
+		sprintf(retorno,"Periodo de sim setado: %d ms",argumento);
 	}else if(!strcmp("setConsumo",comando))
 	{
 		sprintf(retorno,"Consumo setado: %d",argumento);
@@ -107,6 +169,7 @@ void handleMensagem(char* msg, char* retorno)
 	{
 		strcpy(retorno,"OK");
 	}
+	pthread_mutex_unlock( &mutexPlanta );
 }
 
 int kbhit(void)
