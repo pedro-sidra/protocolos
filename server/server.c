@@ -76,6 +76,29 @@ int main(int argcl,char *argvl[])
 }
 
 // PLANTA:
+double outangle(double t) {
+	if(t <= 0) {
+		return 50;
+	}
+	if(t<20000) {
+		return (50+t/400);
+	}
+	if(t<30000) {
+		return 100;
+	}
+	if(t<50000) {
+		return (100-(t-30000)/250);
+	}
+	if(t<70000) {
+		return (20 + (t-50000)/1000);
+	}
+
+	if(t<100000) {
+		return(40+20*cos((t-70000)*2*M_PI/10000));
+	}
+	return 100;
+}
+
 void initPlanta()
 {
 	pl.nivel = 0.4;
@@ -103,6 +126,7 @@ double saturate(double val, double lower, double upper)
 void *simPlanta()
 {
 	double dT = SIM_TS_DEFAULT;
+	double t=0;
 	double delta = 0;
 	double influx, outflux;
 	struct valvula in, out;
@@ -112,9 +136,7 @@ void *simPlanta()
 	in.angleNow = 0;
 	in.angleNext = 0;
 	out.angleNow = 0;
-	out.angleNext = 0;
-	printf("%f",dT);
-	
+	out.angleNext = 0;	
 	while(!end)
 	{
 		pthread_mutex_lock( &mutexPlanta );
@@ -123,7 +145,8 @@ void *simPlanta()
 		lv.now = saturate(lv.next,0,1);
 		pl.nivel=lv.now*100;
 		dT = (double)pl.simTS.tv_nsec/1000000.0;
-		printf("%f",dT);
+		t+=dT;
+		out.angleNext = outangle(t);
 		//Rotina de simulacao:
 		if (pl.comandoValvula!=0) {
 			delta   += (pl.comandoValvula);
