@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <SDL/SDL.h>
 #include <math.h>
-
+#include <stdbool.h>
 #define SCREEN_W 640 //tamanho da janela que sera criada
 #define SCREEN_H 640
 
@@ -177,17 +177,3 @@ void quitevent() {
 //
 //
 
-int main( int argc, const char* argv[] ) {
-  Tdataholder *data;
-  double t=0;
-
-  data = datainit(640,480,55,110,45,0,0);
-
-  for (t=0;t<50;t+=0.1) {
-    datadraw(data,t,(double)(50+20*cos(t/5)),(double)(70+10*sin(t/10)),(double)(20+5*cos(t/2.5)));
-  }
-
-  while(1) {
-    quitevent();
-  }
-}

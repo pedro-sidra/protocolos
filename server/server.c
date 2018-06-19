@@ -16,6 +16,8 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "../graph/graph.h"
+
 #define DEBUG true
 #define SIM_TS_DEFAULT 10
 
@@ -27,6 +29,7 @@ void *comms();
 void *simPlanta();
 void initPlanta();
 double saturate(double val, double upper, double lower);
+void*graph(void*);
 
 struct planta{
 	double nivel;
@@ -34,15 +37,26 @@ struct planta{
 	double comandoValvula;
 	double MAX;
 };
+struct valvula {
+	double angleNow;
+	double angleNext;
+};
 
+struct level{
+	double now;
+	double next;
+};
 pthread_mutex_t mutexPlanta = PTHREAD_MUTEX_INITIALIZER;
 
 int argc =0;
 char **argv;
 bool end = false;
+double t=0;
 
 struct planta pl;
-
+struct level lv;
+struct valvula in;
+struct valvula out;
 
 int main(int argcl,char *argvl[])
 {
@@ -51,8 +65,8 @@ int main(int argcl,char *argvl[])
 	
 	initPlanta();
 	
-	pthread_t commthread, simthread;
-	int  iret1, iret2;
+	pthread_t commthread, simthread,graphthread;
+	int  iret1, iret2,iret3;
 	iret1 = pthread_create( &commthread, NULL, comms,NULL);
 	if(iret1)
 	{
@@ -66,6 +80,14 @@ int main(int argcl,char *argvl[])
 	 fprintf(stderr,"Error simthread - pthread_create() return code: %d\n",iret2);
 	 exit(EXIT_FAILURE);
 	}
+	
+	iret3 = pthread_create( &graphthread, NULL, graph,NULL);
+	if(iret3)
+	{
+	 fprintf(stderr,"Error graphthread - pthread_create() return code: %d\n",iret3);
+	 exit(EXIT_FAILURE);
+	}
+	
 	while(!kbhit());
 	end = true;
 	pthread_join( commthread, NULL);
@@ -106,16 +128,14 @@ void initPlanta()
 	pl.comandoValvula=0;
 	pl.simTS.tv_sec  = 0;
 	pl.simTS.tv_nsec = SIM_TS_DEFAULT*1000000L;
+	lv.now = 0.4;
+	lv.next = 0.4;
+	in.angleNow = 0;
+	in.angleNext = 0;
+	out.angleNow = 0;
+	out.angleNext = 0;	
 }
-struct valvula {
-	double angleNow;
-	double angleNext;
-};
 
-struct level{
-	double now;
-	double next;
-};
 double saturate(double val, double lower, double upper)
 {
 	if(val > upper)
@@ -126,17 +146,11 @@ double saturate(double val, double lower, double upper)
 void *simPlanta()
 {
 	double dT = SIM_TS_DEFAULT;
-	double t=0;
 	double delta = 0;
 	double influx, outflux;
-	struct valvula in, out;
-	struct level lv;
-	lv.now = 0.4;
-	lv.next = 0.4;
-	in.angleNow = 0;
-	in.angleNext = 0;
-	out.angleNow = 0;
-	out.angleNext = 0;	
+	
+	
+
 	while(!end)
 	{
 		pthread_mutex_lock( &mutexPlanta );
@@ -347,6 +361,37 @@ void error(const char *msg)
 {
     perror(msg);
     exit(1);
+}
+
+
+// GRAPH:
+
+
+void* graph( void* argIn ) {
+	Tdataholder *data;
+	int j=0;
+	double t;
+	data = datainit(640,480,55,110,45,0,0);
+	struct timespec graphTS;
+	graphTS.tv_sec  = 0;
+	graphTS.tv_nsec = 50*SIM_TS_DEFAULT*1000000L;
+	while(!end)
+	{
+		pthread_mutex_lock( &mutexPlanta );
+		printf("OI");
+		//datadraw(data,saturate(t/1000.0,0,50),t/1000,in.angleNow,out.angleNow);
+		for(t=0;t<50;t+=0.1)
+			datadraw(data,t,(double)(50+20*cos(t/5)),(double)(70+10*sin(t/10)),(double)(20+5*cos(t/2.5)));
+
+		pthread_mutex_unlock( &mutexPlanta );
+		nanosleep(&(graphTS), NULL);
+			
+	}
+	while(1) {
+		quitevent();
+	}
+	
+	
 }
 
 // MISC:
