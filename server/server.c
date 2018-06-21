@@ -139,9 +139,10 @@ void initPlanta()
 double saturate(double val, double lower, double upper)
 {
 	if(val > upper)
-		val = upper;
+		return upper;
 	else if(val < lower)
-		val = lower;
+		return lower;
+	return val;
 }
 void *simPlanta()
 {
@@ -165,6 +166,7 @@ void *simPlanta()
 		if (pl.comandoValvula!=0) {
 			delta   += (pl.comandoValvula);
 			pl.comandoValvula = 0;
+			printf("%f",delta);
 		}
 		if (delta > 0) {
 			if(delta < 0.02*dT) 
@@ -265,7 +267,7 @@ void handleMensagem(char* msg, char* retorno)
 	// ABRE VALVULA
 	if(!strcmp("abreValvula",comando))
 	{
-		pl.comandoValvula = saturate(argumento,0,100);
+		pl.comandoValvula = saturate((double)argumento,0.0,100.0);
 		sprintf(retorno,"Variacao no angulo da valvula: %d",argumento);	
 		
 	}
@@ -370,20 +372,22 @@ void error(const char *msg)
 void* graph( void* argIn ) {
 	Tdataholder *data;
 	int j=0;
-	double t;
-	data = datainit(640,480,55,110,45,0,0);
+	int tmax=100;
+	data = datainit(640,480,tmax,110,45,0,0);
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
-	graphTS.tv_nsec = 50*SIM_TS_DEFAULT*1000000L;
+	graphTS.tv_nsec = 5*SIM_TS_DEFAULT*1000000L;
 	while(!end)
 	{
 		pthread_mutex_lock( &mutexPlanta );
-		printf("OI");
-		//datadraw(data,saturate(t/1000.0,0,50),t/1000,in.angleNow,out.angleNow);
-		for(t=0;t<50;t+=0.1)
-			datadraw(data,t,(double)(50+20*cos(t/5)),(double)(70+10*sin(t/10)),(double)(20+5*cos(t/2.5)));
-
+		datadraw(data,t/1000.0-j,pl.nivel,in.angleNow,out.angleNow);	
 		pthread_mutex_unlock( &mutexPlanta );
+		if(t/1000>tmax+j)
+		{
+			j+=tmax;
+
+			data = datainit(640,480,tmax,110,pl.nivel,in.angleNow,out.angleNow);
+		}
 		nanosleep(&(graphTS), NULL);
 			
 	}
