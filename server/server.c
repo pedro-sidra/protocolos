@@ -268,25 +268,25 @@ void handleMensagem(char* msg, char* retorno)
 	if(!strcmp("abreValvula",comando))
 	{
 		pl.comandoValvula = saturate((double)argumento,0.0,100.0);
-		sprintf(retorno,"Variacao no angulo da valvula: %d",argumento);	
+		sprintf(retorno,"%d!",argumento);	
 		
 	}
 	// FECHA VALVULA 
 	else if(!strcmp("fechaValvula",comando))
 	{
 		pl.comandoValvula = -saturate(argumento,0,100);
-		sprintf(retorno,"Variacao no angulo da valvula: - %d",argumento);
+		sprintf(retorno,"%d!",argumento);
 	}
 	// GET NIVEL 
 	else if(!strcmp("getNivel",comando))
 	{
 		argumento = (int)pl.nivel;
-		sprintf(retorno,"Nivel do tanque: %d",argumento);
+		sprintf(retorno,"%d!",argumento);
 	}
 	// TESTA CONEXAO
 	else if(!strcmp("testaConexao",comando))
 	{
-		strcpy(retorno,"OK");
+		strcpy(retorno,"OK!");
 	}
 	// SET PERIODO SIMULACAO
 	else if(!strcmp("setPeriodoSimulacao",comando))
@@ -295,22 +295,22 @@ void handleMensagem(char* msg, char* retorno)
 		if(tvnew < 999999999L && tvnew>0)
 		{
 			pl.simTS.tv_nsec=tvnew;
-			sprintf(retorno,"Periodo de sim setado: %d ms",argumento);
+			sprintf(retorno,"%d!",argumento);
 		}else
 		{
-			sprintf(retorno,"Periodo de sim muito grande! Try again...");
+			sprintf(retorno,"NAO!");
 		}
 	}
 	// SET CONSUMO
 	else if(!strcmp("setConsumo",comando))
 	{
 		pl.MAX = saturate(argumento,0,100);
-		sprintf(retorno,"Consumo setado: %d",argumento);
+		sprintf(retorno,"%d!",argumento);
 	}
 	// INICIA SIMULACAO
 	else if(!strcmp("iniciaSimulacao",comando))
 	{
-		strcpy(retorno,"OK");
+		strcpy(retorno,"OK!");
 	}
 	pthread_mutex_unlock( &mutexPlanta );
 }
