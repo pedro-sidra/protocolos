@@ -188,7 +188,7 @@ void* ctrl() {
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
 	graphTS.tv_nsec = 50*10*1000000L;
-	double nivel;
+	int nivel;
 	bool ignora;
 	
 	while(!end)
@@ -213,9 +213,9 @@ void* ctrl() {
 					*pexc = '\0';
 				}
 				nivel=atoi(buffer);
-				printf("NIVEL DEU %d",nivel);
+				printf("NIVEL DEU %d rolas  ",nivel);
 				bzero(buffer,256);
-				sprintf(buffer,"abreValvula#%d!",nivel*0.2);
+				sprintf(buffer,"abreValvula#%d!",(nivel/2));
 				ignora = true;
 				mensagem = true;
 			}
