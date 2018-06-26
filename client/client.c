@@ -16,7 +16,6 @@
 #include <pthread.h>
 
 #include "../graph/graph.h"
-
 void* graph();
 void* ctrl();
 bool mensagem=false;
@@ -187,41 +186,63 @@ void* ctrl() {
 	int tmax=100;
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
-	graphTS.tv_nsec = 50*10*1000000L;
+	graphTS.tv_nsec = 500*1000000L;
 	int nivel;
-	bool ignora;
+	char state = 0;
 	
+	float error=0;
+	float iError =0;
+	float control =0;
+	float ts=0.50;
+	float Kp=10;
+	float Ki=0;
+	bool integrator = true;
 	while(!end)
 	{
 		pthread_mutex_lock( &mutexControle );
-		if(!retorno)
+		if(state ==0)
 		{
 			bzero(buffer,256);
 			strcpy(buffer,"getNivel!");
 			mensagem=true;
-		}else
+			state++;
+		}else if(retorno)
 		{
-			if(ignora)
-				ignora = false;
-			else
+			char* pexc; 
+			pexc= strchr(buffer,'!');
+			if(pexc!=NULL)
+			{
+				*pexc = '\0';
+			}
+			nivel=atoi(buffer);
+			if(state ==2)
+			{
+				if(nivel >= 100 || nivel <=0)
+					integrator = false;
+				else
+					integrator=true;
+				state =0;
+			}
+			else if(state==1)
 			{
 				printf("%s",buffer);
-				char* pexc; 
-				pexc= strchr(buffer,'!');
-				if(pexc!=NULL)
-				{
-					*pexc = '\0';
-				}
-				nivel=atoi(buffer);
-				printf("NIVEL DEU %d rolas  ",nivel);
+				
+				printf("NIVEL ");
 				bzero(buffer,256);
-				sprintf(buffer,"abreValvula#%d!",(nivel/2));
-				ignora = true;
+				error =50 - nivel; 
+				if(integrator)
+					iError += ts*error;
+				control = Kp*error + Ki*iError;
+				if(control>=0)
+					sprintf(buffer,"abreValvula#%d!",(int)control);
+				else
+					sprintf(buffer,"fechaValvula#%d!",(int)-control);
 				mensagem = true;
+				state++;
 			}
 		}
 		pthread_mutex_unlock( &mutexControle );
-		nanosleep(&(graphTS), NULL);
+		nanosleep(&graphTS, NULL);
 			
 	}
 	while(1) {

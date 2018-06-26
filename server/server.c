@@ -124,7 +124,7 @@ double outangle(double t) {
 void initPlanta()
 {
 	pl.nivel = 0.4;
-	pl.MAX=100;
+	pl.MAX=50;
 	pl.comandoValvula=0;
 	pl.simTS.tv_sec  = 0;
 	pl.simTS.tv_nsec = SIM_TS_DEFAULT*1000000L;
@@ -164,9 +164,14 @@ void *simPlanta()
 		out.angleNext = outangle(t);
 		//Rotina de simulacao:
 		if (pl.comandoValvula!=0) {
-			delta   += (pl.comandoValvula);
+			double newAngle = in.angleNow+pl.comandoValvula;
+			if(newAngle<100 && newAngle>0)
+				delta   += (pl.comandoValvula);
+			else if (newAngle >=100)
+				delta += 100-in.angleNow;
+			else if(newAngle <=0)
+				delta-= in.angleNow;
 			pl.comandoValvula = 0;
-			printf("%f",delta);
 		}
 		if (delta > 0) {
 			if(delta < 0.02*dT) 
@@ -268,14 +273,14 @@ void handleMensagem(char* msg, char* retorno)
 	if(!strcmp("abreValvula",comando))
 	{
 		pl.comandoValvula = saturate((double)argumento,0.0,100.0);
-		sprintf(retorno,"%d!",argumento);	
+		sprintf(retorno,"%d!",(int) saturate(in.angleNow+argumento,0,100));	
 		
 	}
 	// FECHA VALVULA 
 	else if(!strcmp("fechaValvula",comando))
 	{
 		pl.comandoValvula = -saturate(argumento,0,100);
-		sprintf(retorno,"%d!",argumento);
+		sprintf(retorno,"%d!",(int) saturate(in.angleNow-argumento,0,100));
 	}
 	// GET NIVEL 
 	else if(!strcmp("getNivel",comando))
