@@ -233,10 +233,13 @@ void* ctrl() {
 				if(integrator)
 					iError += ts*error;
 				control = Kp*error + Ki*iError;
-				if(control>=0)
-					sprintf(buffer,"abreValvula#%d!",(int)control);
-				else
-					sprintf(buffer,"fechaValvula#%d!",(int)-control);
+				if(integrator)
+				{
+					if(control>=0)
+						sprintf(buffer,"abreValvula#%d!",(int)control);
+					else
+						sprintf(buffer,"fechaValvula#%d!",(int)-control);
+				}
 				mensagem = true;
 				state++;
 			}
