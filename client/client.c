@@ -102,49 +102,53 @@ int main(int argc, char *argv[])
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
     }
-    
+	portno = atoi(argv[2]);
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) 
+		error("ERROR opening socket");
+	server = gethostbyname(argv[1]);
+	if (server == NULL) {
+		fprintf(stderr,"ERROR, no such host\n");
+		exit(0);
+	}
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	bcopy((char *)server->h_addr, 
+	 (char *)&serv_addr.sin_addr.s_addr,
+	 server->h_length);
+	serv_addr.sin_port = htons(portno);
+	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+		error("ERROR connecting");
+
     while(!end){
-		portno = atoi(argv[2]);
-		sockfd = socket(AF_INET, SOCK_STREAM, 0);
-		if (sockfd < 0) 
-			error("ERROR opening socket");
-		server = gethostbyname(argv[1]);
-		if (server == NULL) {
-			fprintf(stderr,"ERROR, no such host\n");
-			exit(0);
-		}
-		bzero((char *) &serv_addr, sizeof(serv_addr));
-		serv_addr.sin_family = AF_INET;
-		bcopy((char *)server->h_addr, 
-			 (char *)&serv_addr.sin_addr.s_addr,
-			 server->h_length);
-		serv_addr.sin_port = htons(portno);
-		if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
-				error("ERROR connecting");
 		end = kbhit();
-		while(!mensagem && !end);
-		retorno = false;
-		pthread_mutex_lock( &mutexControle );
-		n = write(sockfd,buffer,strlen(buffer));
-		pthread_mutex_unlock( &mutexControle );
 		
-		if (n < 0) 
-			 error("ERROR writing to socket");
-		mensagem = false;
-		pthread_mutex_lock( &mutexControle );		
-		bzero(buffer,256);
-		n = read(sockfd,buffer,255);
+		if(mensagem)
+		{
+			mensagem = false;
+			
+			// Envia mensagem
+			pthread_mutex_lock( &mutexControle );
+			n = write(sockfd,buffer,strlen(buffer));
+			pthread_mutex_unlock( &mutexControle );
+			
+			if (n < 0) 
+				 error("ERROR writing to socket");
+			
+			//Recebe retorno
+			pthread_mutex_lock( &mutexControle );		
+			bzero(buffer,256);
+			n = read(sockfd,buffer,255);
+			if (n < 0) 
+				 error("ERROR reading from socket");
+			retorno = true;
+			pthread_mutex_unlock( &mutexControle );
+		}
 		
-		if (n < 0) 
-			 error("ERROR reading from socket");
-		printf("%s\n",buffer);
-		retorno = true;
-		pthread_mutex_unlock( &mutexControle );
 		
-		
-		close(sockfd);
 		
 	}
+	close(sockfd);
     
 	
     return 0;
@@ -186,14 +190,15 @@ void* ctrl() {
 	int tmax=100;
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
-	graphTS.tv_nsec = 500*1000000L;
-	int nivel;
+	graphTS.tv_nsec = 10*1000000L;
+	int numReturn;
 	char state = 0;
+	double valvulaIn=0;
 	
 	float error=0;
 	float iError =0;
 	float control =0;
-	float ts=0.50;
+	float ts=0.010;
 	float Kp=10;
 	float Ki=0;
 	bool integrator = true;
@@ -208,16 +213,17 @@ void* ctrl() {
 			state++;
 		}else if(retorno)
 		{
+			retorno = false;
 			char* pexc; 
 			pexc= strchr(buffer,'!');
 			if(pexc!=NULL)
 			{
 				*pexc = '\0';
 			}
-			nivel=atoi(buffer);
+			numReturn=atoi(buffer);
 			if(state ==2)
 			{
-				if(nivel >= 100 || nivel <=0)
+				if(valvulaIn+control >= 100 || valvulaIn+control <=0)
 					integrator = false;
 				else
 					integrator=true;
@@ -225,11 +231,8 @@ void* ctrl() {
 			}
 			else if(state==1)
 			{
-				printf("%s",buffer);
-				
-				printf("NIVEL ");
 				bzero(buffer,256);
-				error =50 - nivel; 
+				error =50 - numReturn; 
 				if(integrator)
 					iError += ts*error;
 				control = Kp*error + Ki*iError;
@@ -239,6 +242,10 @@ void* ctrl() {
 						sprintf(buffer,"abreValvula#%d!",(int)control);
 					else
 						sprintf(buffer,"fechaValvula#%d!",(int)-control);
+					valvulaIn += control;
+				}else
+				{
+					sprintf(buffer,"fechaValvula#%d!",0);
 				}
 				mensagem = true;
 				state++;

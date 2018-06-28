@@ -18,7 +18,7 @@
 
 #include "../graph/graph.h"
 
-#define DEBUG true
+#define DEBUG false
 #define SIM_TS_DEFAULT 10
 
 int getComandoArgumento(char*str, char*cmd,int* arg);
@@ -166,7 +166,6 @@ void *simPlanta()
 		if (pl.comandoValvula!=0) {
 			delta   += (pl.comandoValvula);
 			pl.comandoValvula = 0;
-			printf("%f",delta);
 		}
 		if (delta > 0) {
 			if(delta < 0.02*dT) 
@@ -223,21 +222,20 @@ void *comms()
      if (bind(sockfd, (struct sockaddr *) &serv_addr,
               sizeof(serv_addr)) < 0) 
               error("ERROR on binding");
-              
+     listen(sockfd,5);
+	 clilen = sizeof(cli_addr);
+	 newsockfd = accept(sockfd, 
+				 (struct sockaddr *) &cli_addr, 
+				 &clilen);
+	 if (newsockfd < 0) 
+		  error("ERROR on accept");
      while(!end)
      {
 		 strcpy(retorno,"No Commands");
-		 listen(sockfd,5);
-		 clilen = sizeof(cli_addr);
-		 newsockfd = accept(sockfd, 
-					 (struct sockaddr *) &cli_addr, 
-					 &clilen);
-		 if (newsockfd < 0) 
-			  error("ERROR on accept");
+		 
 		 bzero(buffer,256);
 		 n = read(newsockfd,buffer,255);
 		 if (n < 0) error("ERROR reading from socket");
-		 printf("Here is the message: %s\n",buffer);
 		 
 		 handleMensagem(buffer,retorno);
 		 
