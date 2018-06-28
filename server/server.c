@@ -52,6 +52,8 @@ int argc =0;
 char **argv;
 bool end = false;
 double t=0;
+double delta = 0;
+
 
 struct planta pl;
 struct level lv;
@@ -147,7 +149,6 @@ double saturate(double val, double lower, double upper)
 void *simPlanta()
 {
 	double dT = SIM_TS_DEFAULT;
-	double delta = 0;
 	double influx, outflux;
 	
 	
@@ -266,14 +267,14 @@ void handleMensagem(char* msg, char* retorno)
 	if(!strcmp("abreValvula",comando))
 	{
 		pl.comandoValvula = saturate((double)argumento,0.0,100.0);
-		sprintf(retorno,"%d!",(int) saturate(in.angleNow+argumento,0,100));	
+		sprintf(retorno,"%d!",(int) saturate(in.angleNow+delta,0,100));	
 		
 	}
 	// FECHA VALVULA 
 	else if(!strcmp("fechaValvula",comando))
 	{
 		pl.comandoValvula = -saturate(argumento,0,100);
-		sprintf(retorno,"%d!",(int) saturate(in.angleNow-argumento,0,100));
+		sprintf(retorno,"%d!",(int) saturate(in.angleNow-delta,0,100));
 	}
 	// GET NIVEL 
 	else if(!strcmp("getNivel",comando))

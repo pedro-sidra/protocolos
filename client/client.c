@@ -22,7 +22,9 @@ bool mensagem=false;
 bool end=false;
 bool retorno = false;
 char buffer[256];
-
+double valvulaIn=0;
+double nivel =0;
+double t=0;
 
 pthread_mutex_t mutexControle = PTHREAD_MUTEX_INITIALIZER;
 
@@ -155,30 +157,31 @@ int main(int argc, char *argv[])
 }
 
 void* graph( ) {
-	/*Tdataholder *data;
+	Tdataholder *data;
 	int j=0;
 	int tmax=100;
 	data = datainit(640,480,tmax,110,45,0,0);
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
-	graphTS.tv_nsec = 5*SIM_TS_DEFAULT*1000000L;
+	graphTS.tv_nsec = 50*1000000L;
 	while(!end)
 	{
+		t+=50;
 		pthread_mutex_lock( &mutexControle );
-		datadraw(data,t/1000.0-j,pl.nivel,in.angleNow,out.angleNow);	
+		datadraw(data,t/1000.0-j,nivel,valvulaIn,0);	
 		pthread_mutex_unlock( &mutexControle );
 		if(t/1000>tmax+j)
 		{
 			j+=tmax;
 
-			data = datainit(640,480,tmax,110,pl.nivel,in.angleNow,out.angleNow);
+			data = datainit(640,480,tmax,110,nivel,valvulaIn,0);
 		}
 		nanosleep(&(graphTS), NULL);
 			
 	}
 	while(1) {
 		quitevent();
-	}*/
+	}
 	
 	
 }
@@ -193,7 +196,6 @@ void* ctrl() {
 	graphTS.tv_nsec = 10*1000000L;
 	int numReturn;
 	char state = 0;
-	double valvulaIn=0;
 	
 	float error=0;
 	float iError =0;
@@ -223,6 +225,7 @@ void* ctrl() {
 			numReturn=atoi(buffer);
 			if(state ==2)
 			{
+				valvulaIn = numReturn;
 				if(valvulaIn+control >= 100 || valvulaIn+control <=0)
 					integrator = false;
 				else
@@ -231,8 +234,9 @@ void* ctrl() {
 			}
 			else if(state==1)
 			{
+				nivel = numReturn;
 				bzero(buffer,256);
-				error =50 - numReturn; 
+				error =50 - nivel; 
 				if(integrator)
 					iError += ts*error;
 				control = Kp*error + Ki*iError;
