@@ -18,7 +18,7 @@
 
 #include "../graph/graph.h"
 
-#define DEBUG false
+#define DEBUG true
 #define SIM_TS_DEFAULT 10
 
 int getComandoArgumento(char*str, char*cmd,int* arg);
