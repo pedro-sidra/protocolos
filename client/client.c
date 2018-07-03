@@ -19,6 +19,7 @@
 void* graph();
 void* ctrl();
 bool mensagem=false;
+bool start=false;
 bool end=false;
 bool retorno = false;
 char buffer[256];
@@ -122,6 +123,30 @@ int main(int argc, char *argv[])
 	serv_addr.sin_port = htons(portno);
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
 		error("ERROR connecting");
+    while(!start){
+		
+		printf("Insira comandos: ");
+		bzero(buffer,256);
+		fgets(buffer,255,stdin);
+		if(strcmp(buffer,"iniciaSimulacao!")==0)
+		{
+			start = true;
+		}else if (strcmp(buffer,"end!")==0)
+			end = true;
+		n = write(sockfd,buffer,strlen(buffer));
+		
+		if (n < 0) 
+			 error("ERROR writing to socket");
+		bzero(buffer,256);
+		n = read(sockfd,buffer,255);
+		if (n < 0) 
+			 error("ERROR reading from socket");
+		printf("retorno:\n%s\n",buffer);
+		
+		printf("Mandar mais uma?");
+		char tecla = getInput();
+	}
+    
     while(!end){
 		end = kbhit();
 		
@@ -161,11 +186,15 @@ void* graph( ) {
 	int j=0;
 	double t = 0;
 	int tmax=100;
-	data = datainit(640,480,tmax,110,45,0,0);
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
 	int tGraph = 50;
 	graphTS.tv_nsec = tGraph*1000000L;
+	
+	while(!start)
+		if(end)
+			return;
+	data = datainit(640,480,tmax,110,45,0,0);
 	while(!end)
 	{
 		t+=tGraph;
@@ -199,93 +228,95 @@ void* ctrl() {
 	int tcontrol = 10;
 	graphTS.tv_nsec = tcontrol*1000000L;
 	int numReturn;
-	int state = -1;
+	int state = 0;
 
 	float iError =0;
 	float dError = 0;
 	float ts=tcontrol*0.001;
-	float Kp=0.25;
+	float Kp=10;
 	float Ki=0;
-	float Kd = 0.1;
+	float Kd = 10;
 	float erroLast;
 	bool integrator = true;
 	int valvulaPlanta=0;
+	while(!start)
+		if(end)
+			return;
 	while(!end)
 	{
-		pthread_mutex_lock( &mutexControle );
-		
-		if(state ==-1)
-		{
-			bzero(buffer,256);
-			strcpy(buffer,"iniciaSimulacao!");
-			mensagem=true;
-			state++;
-		}else if(state ==0)
-		{
-			bzero(buffer,256);
-			strcpy(buffer,"getNivel!");
-			mensagem=true;
-			state++;
-		}else if(retorno)
-		{
-			retorno = false;
-			char* pexc; 
-			pexc= strchr(buffer,'!');
-			if(pexc!=NULL)
+			pthread_mutex_lock( &mutexControle );
+			
+			if(state ==-1)
 			{
-				*pexc = '\0';
-			}
-			numReturn=atoi(buffer);
-			if(state ==2)
-			{
-				//printf("Valvula: %d\n",numReturn);
-				state =0;
-			}
-			else if(state==1)
-			{
-				nivel = numReturn;
 				bzero(buffer,256);
-				erroLast = erro;
-				erro =(double)(50 - nivel); 
-				if(integrator)
-					iError += ts*erro;
-				dError = (erro-erroLast) / ts;
-				control = Kp*erro + Ki*iError + Kd*dError;
-				//printf("I: %f",iError);
-				if(valvulaIn+control >= 100)
+				strcpy(buffer,"iniciaSimulacao!");
+				mensagem=true;
+				state++;
+			}else if(state ==0)
+			{
+				bzero(buffer,256);
+				strcpy(buffer,"getNivel!");
+				mensagem=true;
+				state++;
+			}else if(retorno)
+			{
+				retorno = false;
+				char* pexc; 
+				pexc= strchr(buffer,'!');
+				if(pexc!=NULL)
 				{
-					control = 100-valvulaIn;
-					integrator = false;
-				}else if(valvulaIn+control <=0){
-					control = 0-valvulaIn;
-					integrator = false;
+					*pexc = '\0';
 				}
-				else
-					integrator=true;
-				valvulaIn += control;
-				int diffValvula = fabs(valvulaIn-valvulaPlanta);
-				if(diffValvula!=0)
+				numReturn=atoi(buffer);
+				if(state ==2)
 				{
-					if(control>=0)
+					//printf("Valvula: %d\n",numReturn);
+					state =0;
+				}
+				else if(state==1)
+				{
+					nivel = numReturn;
+					bzero(buffer,256);
+					erroLast = erro;
+					erro =(double)(50 - nivel); 
+					if(integrator)
+						iError += ts*erro;
+					dError = (erro-erroLast) / ts;
+					control = Kp*erro + Ki*iError + Kd*dError;
+					//printf("I: %f",iError);
+					if(valvulaIn+control >= 100)
 					{
-						sprintf(buffer,"abreValvula#%d!",diffValvula);
-						valvulaPlanta+=diffValvula;
+						control = 100-valvulaIn;
+						integrator = false;
+					}else if(valvulaIn+control <=0){
+						control = 0-valvulaIn;
+						integrator = false;
 					}
 					else
+						integrator=true;
+					valvulaIn += control;
+					int diffValvula = fabs(valvulaIn-valvulaPlanta);
+					if(diffValvula!=0)
 					{
-						sprintf(buffer,"fechaValvula#%d!",diffValvula);
-						valvulaPlanta-=diffValvula;
-					}
-				}else
-					sprintf(buffer,"fechaValvula#%d!",0);
-				
-				mensagem = true;
-				state++;
+						if(control>=0)
+						{
+							sprintf(buffer,"abreValvula#%d!",diffValvula);
+							valvulaPlanta+=diffValvula;
+						}
+						else
+						{
+							sprintf(buffer,"fechaValvula#%d!",diffValvula);
+							valvulaPlanta-=diffValvula;
+						}
+					}else
+						sprintf(buffer,"fechaValvula#%d!",0);
+					
+					mensagem = true;
+					state++;
+				}
 			}
-		}
-		pthread_mutex_unlock( &mutexControle );
-		nanosleep(&graphTS, NULL);
-			
+			pthread_mutex_unlock( &mutexControle );
+			nanosleep(&graphTS, NULL);
 	}
 	while(1) {
 		quitevent();
