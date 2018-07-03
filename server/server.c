@@ -51,6 +51,7 @@ pthread_mutex_t mutexPlanta = PTHREAD_MUTEX_INITIALIZER;
 int argc =0;
 char **argv;
 bool end = false;
+bool start = false;
 double t=0;
 
 struct planta pl;
@@ -151,49 +152,51 @@ void *simPlanta()
 	double influx, outflux;
 	
 	
-
 	while(!end)
 	{
-		pthread_mutex_lock( &mutexPlanta );
-		out.angleNow = saturate(out.angleNext,0,100);
-		in.angleNow = saturate(in.angleNext,0,100);
-		lv.now = saturate(lv.next,0,1);
-		pl.nivel=lv.now*100;
-		dT = (double)pl.simTS.tv_nsec/1000000.0;
-		t+=dT;
-		out.angleNext = outangle(t);
-		//Rotina de simulacao:
-		if (pl.comandoValvula!=0) {
-			delta   += (pl.comandoValvula);
-			pl.comandoValvula = 0;
-		}
-		if (delta > 0) {
-			if(delta < 0.02*dT) 
-			{
-				in.angleNext=  in.angleNow+delta;
-				delta = 0; 
-			}else
-			{
-				in.angleNext=  in.angleNow+0.02*dT;
-				delta -=  0.02*dT;
+		if(start)
+		{
+			pthread_mutex_lock( &mutexPlanta );
+			out.angleNow = saturate(out.angleNext,0,100);
+			in.angleNow = saturate(in.angleNext,0,100);
+			lv.now = saturate(lv.next,0,1);
+			pl.nivel=lv.now*100;
+			dT = (double)pl.simTS.tv_nsec/1000000.0;
+			t+=dT;
+			out.angleNext = outangle(t);
+			//Rotina de simulacao:
+			if (pl.comandoValvula!=0) {
+				delta   += (pl.comandoValvula);
+				pl.comandoValvula = 0;
 			}
-		} else if (delta < 0) {  
-			if(delta > -0.02*dT) {
-				in.angleNext= in.angleNow+delta;
-				delta = 0;
-			} 
-			else {
-				in.angleNext=  in.angleNow-0.02*dT;
-				delta +=  0.02*dT;
+			if (delta > 0) {
+				if(delta < 0.02*dT) 
+				{
+					in.angleNext=  in.angleNow+delta;
+					delta = 0; 
+				}else
+				{
+					in.angleNext=  in.angleNow+0.02*dT;
+					delta -=  0.02*dT;
+				}
+			} else if (delta < 0) {  
+				if(delta > -0.02*dT) {
+					in.angleNext= in.angleNow+delta;
+					delta = 0;
+				} 
+				else {
+					in.angleNext=  in.angleNow-0.02*dT;
+					delta +=  0.02*dT;
+				}
 			}
-		}
 
-		influx = 1*sin(M_PI/2*in.angleNow/100);
-		outflux= (pl.MAX/100.0)*(lv.now/1.25+0.2)*sin(M_PI/2*out.angleNow/100);
-		lv.next=lv.now+0.00001*dT*(influx-outflux);
-		
-		//Fim da rotina de simulacao
-		pthread_mutex_unlock( &mutexPlanta );
+			influx = 1*sin(M_PI/2*in.angleNow/100);
+			outflux= (pl.MAX/100.0)*(lv.now/1.25+0.2)*sin(M_PI/2*out.angleNow/100);
+			lv.next=lv.now+0.00001*dT*(influx-outflux);
+			
+			//Fim da rotina de simulacao
+			pthread_mutex_unlock( &mutexPlanta );
+		}
 		nanosleep(&pl.simTS, NULL);
 	}
 }
@@ -308,6 +311,7 @@ void handleMensagem(char* msg, char* retorno)
 	// INICIA SIMULACAO
 	else if(!strcmp("iniciaSimulacao",comando))
 	{
+		start = true;
 		strcpy(retorno,"OK!");
 	}
 	pthread_mutex_unlock( &mutexPlanta );
@@ -371,10 +375,16 @@ void* graph( void* argIn ) {
 	Tdataholder *data;
 	int j=0;
 	int tmax=100;
-	data = datainit(640,480,tmax,110,45,0,0);
+	
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
 	graphTS.tv_nsec = 5*SIM_TS_DEFAULT*1000000L;
+	while(!start)
+	{
+		if(end)
+			return;
+	}
+	data = datainit(640,480,tmax,110,45,0,0);
 	while(!end)
 	{
 		pthread_mutex_lock( &mutexPlanta );

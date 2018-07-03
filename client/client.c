@@ -22,9 +22,10 @@ bool mensagem=false;
 bool end=false;
 bool retorno = false;
 char buffer[256];
-	double valvulaIn=0;
-	double nivel;
-	float erro=0;
+
+double valvulaIn=0;
+double nivel;
+float erro=0;
 
 pthread_mutex_t mutexControle = PTHREAD_MUTEX_INITIALIZER;
 
@@ -121,7 +122,6 @@ int main(int argc, char *argv[])
 	serv_addr.sin_port = htons(portno);
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
 		error("ERROR connecting");
-
     while(!end){
 		end = kbhit();
 		
@@ -164,10 +164,11 @@ void* graph( ) {
 	data = datainit(640,480,tmax,110,45,0,0);
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
-	graphTS.tv_nsec = 50*1000000L;
+	int tGraph = 50;
+	graphTS.tv_nsec = tGraph*1000000L;
 	while(!end)
 	{
-		t+=50;
+		t+=tGraph;
 		pthread_mutex_lock( &mutexControle );
 		datadraw(data,t/1000.0-j,nivel,valvulaIn,abs(control));	
 		pthread_mutex_unlock( &mutexControle );
@@ -195,21 +196,31 @@ void* ctrl() {
 	int tmax=100;
 	struct timespec graphTS;
 	graphTS.tv_sec  = 0;
-	graphTS.tv_nsec = 10*1000000L;
+	int tcontrol = 10;
+	graphTS.tv_nsec = tcontrol*1000000L;
 	int numReturn;
-	char state = 0;
+	int state = -1;
 
 	float iError =0;
-	float ts=0.010;
-	float Kp=0.1;
+	float dError = 0;
+	float ts=tcontrol*0.001;
+	float Kp=0.25;
 	float Ki=0;
-	float lvlast;
+	float Kd = 0.1;
+	float erroLast;
 	bool integrator = true;
 	int valvulaPlanta=0;
 	while(!end)
 	{
 		pthread_mutex_lock( &mutexControle );
-		if(state ==0)
+		
+		if(state ==-1)
+		{
+			bzero(buffer,256);
+			strcpy(buffer,"iniciaSimulacao!");
+			mensagem=true;
+			state++;
+		}else if(state ==0)
 		{
 			bzero(buffer,256);
 			strcpy(buffer,"getNivel!");
@@ -227,20 +238,20 @@ void* ctrl() {
 			numReturn=atoi(buffer);
 			if(state ==2)
 			{
-				printf("Valvula: %d\n",numReturn);
+				//printf("Valvula: %d\n",numReturn);
 				state =0;
 			}
 			else if(state==1)
 			{
-				lvlast = nivel;
 				nivel = numReturn;
-				nivel = (nivel+lvlast)/2;
 				bzero(buffer,256);
+				erroLast = erro;
 				erro =(double)(50 - nivel); 
 				if(integrator)
 					iError += ts*erro;
-				control = Kp*erro + Ki*iError;
-				printf("I: %f",iError);
+				dError = (erro-erroLast) / ts;
+				control = Kp*erro + Ki*iError + Kd*dError;
+				//printf("I: %f",iError);
 				if(valvulaIn+control >= 100)
 				{
 					control = 100-valvulaIn;
@@ -252,17 +263,18 @@ void* ctrl() {
 				else
 					integrator=true;
 				valvulaIn += control;
-				if((int)(valvulaIn)!=valvulaPlanta)
+				int diffValvula = fabs(valvulaIn-valvulaPlanta);
+				if(diffValvula!=0)
 				{
 					if(control>=0)
 					{
-						sprintf(buffer,"abreValvula#%d!",1);
-						valvulaPlanta++;
+						sprintf(buffer,"abreValvula#%d!",diffValvula);
+						valvulaPlanta+=diffValvula;
 					}
 					else
 					{
-						sprintf(buffer,"fechaValvula#%d!",1);
-						valvulaPlanta--;
+						sprintf(buffer,"fechaValvula#%d!",diffValvula);
+						valvulaPlanta-=diffValvula;
 					}
 				}else
 					sprintf(buffer,"fechaValvula#%d!",0);
