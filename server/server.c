@@ -18,7 +18,7 @@
 
 #include "../graph/graph.h"
 
-#define DEBUG true
+#define DEBUG false
 #define SIM_TS_DEFAULT 10
 
 int getComandoArgumento(char*str, char*cmd,int* arg);
@@ -281,7 +281,7 @@ void handleMensagem(char* msg, char* retorno)
 	// GET NIVEL 
 	else if(!strcmp("getNivel",comando))
 	{
-		argumento = (int)pl.nivel;
+		argumento = (int)round(pl.nivel);
 		sprintf(retorno,"%d!",argumento);
 	}
 	// TESTA CONEXAO
