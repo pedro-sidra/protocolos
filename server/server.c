@@ -306,7 +306,7 @@ void handleMensagem(char* msg, char* retorno)
 	else if(!strcmp("setConsumo",comando))
 	{
 		pl.MAX = saturate(argumento,0,100);
-		sprintf(retorno,"%d!",argumento);
+		sprintf(retorno,"%d!",(int)pl.MAX );
 	}
 	// INICIA SIMULACAO
 	else if(!strcmp("iniciaSimulacao",comando))

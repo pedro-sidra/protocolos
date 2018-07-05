@@ -103,8 +103,8 @@ int main(int argc, char *argv[])
     struct hostent *server;
 	char tecla;
 	
-    if (argc < 3) {
-       fprintf(stderr,"usage %s hostname port\n", argv[0]);
+    if (argc < 4) {
+       fprintf(stderr,"usage %s hostname port consumo\n", argv[0]);
        exit(0);
     }
 	portno = atoi(argv[2]);
@@ -124,27 +124,34 @@ int main(int argc, char *argv[])
 	serv_addr.sin_port = htons(portno);
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
 		error("ERROR connecting");
-    while(!start){
-		
-		printf("Insira comandos: ");
-		bzero(buffer,256);
-		fgets(buffer,255,stdin);
-		if(strcmp("iniciaSimulacao!\n",buffer)==0)
-		{
-			start = true;
-		}else if (strcmp(buffer,"end!")==0)
-			end = true;
-		n = write(sockfd,buffer,strlen(buffer));
-		
-		if (n < 0) 
-			 error("ERROR writing to socket");
-		bzero(buffer,256);
-		n = read(sockfd,buffer,255);
-		if (n < 0) 
-			 error("ERROR reading from socket");
-		printf("retorno:\n%s\n",buffer);
 	
-	}
+	// Envia comando com o consumo:	
+	int consumo = atoi(argv[3]);
+	bzero(buffer,256);
+	sprintf(buffer,"setConsumo#%d!",consumo);
+	n = write(sockfd,buffer,strlen(buffer));
+	if (n < 0) error("ERROR writing to socket");
+	bzero(buffer,256);
+	n = read(sockfd,buffer,255);
+	if (n < 0) error("ERROR reading from socket");
+	printf("Retorno do consumo:\n%s\n",buffer);
+	
+	// Envia comando de inicio:	
+	bzero(buffer,256);
+	sprintf(buffer,"iniciaSimulacao!",consumo);
+	n = write(sockfd,buffer,strlen(buffer));
+	if (n < 0) 
+		 error("ERROR writing to socket");
+	bzero(buffer,256);
+	n = read(sockfd,buffer,255);
+	if (n < 0) 
+		 error("ERROR reading from socket");
+	printf("Retorno do inicio de simulacao:\n%s\n",buffer);
+	
+	// Inicia as threads:
+    pthread_mutex_lock( &mutexControle );
+    start = true;
+    pthread_mutex_unlock( &mutexControle );
     
     while(!end){
 		end = kbhit();
