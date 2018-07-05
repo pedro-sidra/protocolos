@@ -16,6 +16,7 @@
 #include <pthread.h>
 
 #include "../graph/graph.h"
+
 void* graph();
 void* ctrl();
 bool mensagem=false;
@@ -128,7 +129,7 @@ int main(int argc, char *argv[])
 		printf("Insira comandos: ");
 		bzero(buffer,256);
 		fgets(buffer,255,stdin);
-		if(strcmp(buffer,"iniciaSimulacao!")==0)
+		if(strcmp("iniciaSimulacao!\n",buffer)==0)
 		{
 			start = true;
 		}else if (strcmp(buffer,"end!")==0)
@@ -142,9 +143,7 @@ int main(int argc, char *argv[])
 		if (n < 0) 
 			 error("ERROR reading from socket");
 		printf("retorno:\n%s\n",buffer);
-		
-		printf("Mandar mais uma?");
-		char tecla = getInput();
+	
 	}
     
     while(!end){
@@ -233,9 +232,13 @@ void* ctrl() {
 	float iError =0;
 	float dError = 0;
 	float ts=tcontrol*0.001;
-	float Kp=10;
+	//float Kp=10;
+	float Kp=.5;//0.5
+
 	float Ki=0;
-	float Kd = 10;
+	//float Kd = 10;
+	float Kd = 0.05;//0.05
+
 	float erroLast;
 	bool integrator = true;
 	int valvulaPlanta=0;
