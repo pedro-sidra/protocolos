@@ -1,4 +1,4 @@
 /trash
 *.o
 */build/*
-
+*.ini
